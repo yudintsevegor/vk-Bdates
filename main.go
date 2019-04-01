@@ -139,8 +139,8 @@ func (h *Handler) handleResult(w http.ResponseWriter, r *http.Request) {
 		SendError(w, http.StatusInternalServerError, err)
 		return
 	}
-	
-	w.Header().Add("Content-Disposition", "Attachment; filename='vkBdates.ics'")
+	w.Header().Set("Content-type", "text/calendar")
+	w.Header().Add("Content-Disposition", "Attachment; filename=vkBdates.ics")
 	http.ServeContent(w, r, "", time.Now(), bytes.NewReader([]byte(content)))
 }
 
