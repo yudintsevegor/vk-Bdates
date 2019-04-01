@@ -1,96 +1,46 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/Dimonchik0036/vk-api"
 )
 
-type Handler struct {
-	IcsFields []string
+func SendError(w http.ResponseWriter, status int, err error) {
+	w.WriteHeader(status)
+	w.Header().Set("Content-type", "application/json")
+	jsonError, _ := json.Marshal(FromServer{Error: err.Error()})
+	w.Write(jsonError)
 }
-
-type FromResp struct {
-	Token  string `json:"access_token"`
-	UserId int64  `json:"user_id"`
-}
-
-var (
-	htmlIndex = `
-		<html>
-		<head>
-		</head>
-		<body>
-			<div align="center">
-			<a href="/login">vk Log in</a>
-			</div>
-		</body>
-		</html>`
-	host = "http://127.0.0.1:8080"
-	url  = "https://oauth.vk.com/authorize?client_id=" + APP_ID + "&display=page&response_type=code&redirect_uri=" + host + "/result&scope=friends,offline&v=5.52"
-)
 
 func (h *Handler) handleMain(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, htmlIndex)
 }
 
-type ND struct {
-	Name string
-	Date string
-	Year string
+func (h *Handler) handleDownload(w http.ResponseWriter, r *http.Request){
+	
 }
 
-func (h *Handler) handleResult(w http.ResponseWriter, r *http.Request) {
-	code := r.FormValue("code")
-	urlToken := "https://oauth.vk.com/access_token?client_id=" + APP_ID + "&client_secret=" + CLIENT_SECRET + "&redirect_uri=" + host + "/result&code=" + code
-
-	resp, err := http.Get(urlToken)
-	body, err := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
-	if err != nil {
-		fmt.Println(err)
+func (h *Handler) getContent(client *vkapi.Client, id int64) (string, error){
+	fields := h.IcsFields
+	users := make([]NDY, 0, 1)
+	
+	now := strconv.Itoa(time.Now().Year())
+	endYear := strconv.Itoa(time.Now().AddDate(100,0,0).Year())
+	//name - sorting by name
+	//nom - Nominative
+	friends, err := client.GetFriends(id, "name", counts, offset, "nom", "bdate")
+	if err != nil{
+		return "", err
 	}
-
-	st := FromResp{}
-	err = json.Unmarshal(body, &st)
-	if err != nil {
-		fmt.Println(err)
-	}
-	//	fmt.Fprintf(w, "ACCESS_TOKEN: %v\nUser_Id: %v\n", st.Token, st.UserId)
-
-	client, err := vkapi.NewClientFromToken(st.Token)
-	if err != nil {
-		fmt.Println(err)
-	}
-	/*
-		hints - sort by rating
-		nom - Nominative
-	*/
-	var offset int64 = 0
-	var counts int64 = 5000
-	users := make([]ND, 0, 1)
-	now := "2019"
-
-	zeroNum := map[string]string{
-		"1": "01",
-		"2": "02",
-		"3": "03",
-		"4": "04",
-		"5": "05",
-		"6": "06",
-		"7": "07",
-		"8": "08",
-		"9": "09",
-	}
-	friends, err := client.GetFriends(st.UserId, "hints", counts, offset, "nom", "bdate")
+	
 	for _, friend := range friends {
 		if friend.Bdate == "" {
 			continue
@@ -110,73 +60,88 @@ func (h *Handler) handleResult(w http.ResponseWriter, r *http.Request) {
 		if _, ok := zeroNum[day]; ok {
 			day = zeroNum[day]
 		}
-		user := ND{
+		user := NDY{
 			Name: fmt.Sprintf("%v %v", friend.FirstName, friend.LastName),
 			Date: now + month + day,
 			Year: year,
 		}
-		//		fmt.Fprintf(w, "%v %v\n", friend.FirstName, friend.LastName)
-		//		fmt.Fprintf(w, friend.Bdate+"\n")
 		users = append(users, user)
 	}
-	//	fmt.Println(users)
-	file, err := os.Create("kek.ics")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer file.Close()
 
-	fields := h.IcsFields
-	writer := bufio.NewWriter(file)
+	content := ""
 	begin := "BEGIN:VCALENDAR\nVERSION:2.0\n"
+	content += begin
 	end := "END:VCALENDAR"
-	writer.WriteString(begin)
 	for _, user := range users {
 		for _, field := range fields {
 			switch field {
 			case "BEGIN:":
-				writer.WriteString(field + "VEVENT")
-				writer.WriteString("\n")
+				content += field + "VEVENT\n"
 				continue
 			case "SUMMARY:":
-				writer.WriteString(field + user.Name + "'s B-Day")
-				writer.WriteString("\n")
+				content += field + user.Name + "'s B-Day\n"
 				continue
 			case "DTSTART;VALUE=DATE:":
-				writer.WriteString(field + user.Date)
-				writer.WriteString("\n")
+				content += field + user.Date + "\n"
 				continue
 			case "DTEND;VALUE=DATE:":
-				writer.WriteString(field + user.Date)
-				writer.WriteString("\n")
+				content += field + user.Date + "\n"
 				continue
 			case "RRULE:FREQ=YEARLY;UNTIL=":
-				writer.WriteString(field + "21190101")
-				writer.WriteString("\n")
+				content += field + endYear + "0101\n"
 				continue
 			case "DESCRIPTION:":
-				writer.WriteString(field + "Year of Birth: " + user.Year)
-				writer.WriteString("\n")
+				content += field + "Year of Birth: " + user.Year + "\n"
 				continue
 			case "END:":
-				writer.WriteString(field + "VEVENT")
-				writer.WriteString("\n")
+				content += field + "VEVENT\n"
 				continue
 			default:
-				fmt.Println("BLYA", field)
-				return
+				return "", fmt.Errorf("InternalServerError")
 			}
 		}
 	}
-	writer.WriteString(end)
-	writer.Flush()
+	content += end
+	return content, nil
+}
 
-	w.Header().Add("Content-Disposition", "Attachment")
-	content, err := ioutil.ReadFile("kek.ics")
+func (h *Handler) handleResult(w http.ResponseWriter, r *http.Request) {
+	code := r.FormValue("code")
+	urlToken := "https://oauth.vk.com/access_token?client_id=" + APP_ID + "&client_secret=" + CLIENT_SECRET + "&redirect_uri=" + host + "/result&code=" + code
+
+	resp, err := http.Get(urlToken)
+	body, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
 	if err != nil {
-		fmt.Println(err)
+		SendError(w, http.StatusInternalServerError, err)
+		return
 	}
-	http.ServeContent(w, r, "random.ics", time.Now(), bytes.NewReader(content))
+
+	st := TokenUser{}
+	err = json.Unmarshal(body, &st)
+	if err != nil {
+		SendError(w, http.StatusInternalServerError, err)
+		return
+	}
+	
+	if st.Token == "" {
+		SendError(w, http.StatusUnauthorized, fmt.Errorf("Access token not found."))
+		return
+	}
+	
+	client, err := vkapi.NewClientFromToken(st.Token)
+	if err != nil {
+		SendError(w, http.StatusInternalServerError, err)
+		return
+	}
+	content, err := h.getContent(client, st.UserId)
+	if err != nil{
+		SendError(w, http.StatusInternalServerError, err)
+		return
+	}
+	
+	w.Header().Add("Content-Disposition", "Attachment; filename='vkBdates.ics'")
+	http.ServeContent(w, r, "", time.Now(), bytes.NewReader([]byte(content)))
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
