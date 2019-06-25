@@ -2,10 +2,9 @@
 A little project, which let you get "ics" file with your vk-friends B-days.
 
 # Content of repository.
-* branch: master (main branch with web-application)
-    - `main.go`
-	- `global.go`
-	- `readme.md`
+- `main.go`
+- `global.go`
+- `readme.md`
 
 # Opportunities.
 The program allows you to upload ics file with your vk friends' birthdates.
