@@ -14,7 +14,7 @@ During development, i used following packages:
 * [VkAPI wrapper](https://github.com/dimonchik0036/vk-api)
 * Standart libs of golang
 
-# Usage
+# Usage.
 [Click it](https://vkbdates.herokuapp.com).
 For deployment, i used [Heroku](https://heroku.com)
 
