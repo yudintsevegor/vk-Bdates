@@ -24,9 +24,6 @@ func (h *Handler) handleMain(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, htmlIndex)
 }
 
-func (h *Handler) handleDownload(w http.ResponseWriter, r *http.Request){
-	
-}
 
 func (h *Handler) getContent(client *vkapi.Client, id int64) (string, error){
 	fields := h.IcsFields
