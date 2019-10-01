@@ -5,7 +5,6 @@ import (
 	"fmt"
 )
 
-
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/":
