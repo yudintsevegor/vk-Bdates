@@ -1,8 +1,13 @@
 package main
 
 import (
-	"net/http"
 	"fmt"
+	"net/http"
+)
+
+const (
+	port = "8080"
+	host = "http://127.0.0.1:" + port
 )
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -25,9 +30,7 @@ func main() {
 	handler := &Handler{
 		IcsFields: fields,
 	}
-	port := "8080"
+
 	fmt.Println("Start listening at port: ", port)
 	http.ListenAndServe(":"+port, handler)
 }
-
-

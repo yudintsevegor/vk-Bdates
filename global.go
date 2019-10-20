@@ -3,9 +3,10 @@ package main
 import (
 	"fmt"
 )
+
 type Handler struct {
 	IcsFields []string
-	Content string
+	Content   string
 }
 
 type TokenUser struct {
@@ -23,14 +24,20 @@ type FromServer struct {
 	Error string
 }
 
-var alarm = `BEGIN:VALARM
-TRIGGER:-P0D
-DESCRIPTION:reminder
-ACTION:DISPLAY
-END:VALARM
+const (
+	alarm = `BEGIN:VALARM
+	TRIGGER:-P0D
+	DESCRIPTION:reminder
+	ACTION:DISPLAY
+	END:VALARM
 `
+)
 
-var html = `
+var (
+	url = fmt.Sprintf("https://oauth.vk.com/authorize?client_id=%v&display=popup&response_type=code&redirect_uri=%v/result&scope=friends,offline&v=5.52",
+		APP_ID, host)
+
+	htmlMain = `
 		<html>
 		<head>
 		</head>
@@ -38,13 +45,12 @@ var html = `
 			<div align="center">
 			<a href="/download">Download *.ics File</a>
 			</div>
+			<div align="center">
+			<a href="https://vk.com">VK</a>
+			</div>
 		</body>
 		</html>`
-		
 
-var (
-	offset int64 = 0
-	counts int64 = 0
 	htmlIndex = `
 		<html>
 		<head>
@@ -55,9 +61,9 @@ var (
 			</div>
 		</body>
 		</html>`
-		
-	host = "http://127.0.0.1:8080"
-	url  = fmt.Sprintf("https://oauth.vk.com/authorize?client_id=%v&display=popup&response_type=code&redirect_uri=%v/result&scope=friends,offline&v=5.52", APP_ID, host)
+)
+
+var (
 	zeroNum = map[string]string{
 		"1": "01",
 		"2": "02",
