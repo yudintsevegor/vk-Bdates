@@ -22,7 +22,7 @@ For deployment, i used [Heroku](https://heroku.com)
 * Vk-account [VK](https://vk.com)
 
 # Restrictions.
-Unfortunatly, VK API is very restiction. And user can logout only on the main page.
+Unfortunatly, VK API is very restriction. And user can logout only on the main page.
 
 # P.S.
 This is a very raw, but working version of my application. I need to upgrade front-end of app(sorry, but i'm only backend developer...). Also, i need to add some features. It's comming soon...
